@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
-
+import sys
 import math
 
 '''
@@ -21,15 +21,47 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 20 #00 # Number of waypoints we will publish. You can change this number
+
+def closest_waypoint_index(pose, waypoints):
+    '''
+    returns the index of the waypoint closest to pose
+    '''
+    x = pose.position.x
+    y = pose.position.y
+    min_d2 = sys.float_info.max
+    min_index = None
+    for index, waypoint in enumerate(waypoints):
+        p = waypoint.pose.pose.position
+        dx = p.x - x
+        dy = p.y - y
+        d2 = dx * dx + dy * dy
+        if d2 < min_d2:
+            min_d2 = d2
+            min_index = index
+    return min_index
+
 
 
 class WaypointUpdater(object):
+    '''
+    Planning module that listens to pose and publishes
+    near term waypoints to be used by the control subsystems
+
+    inputs:
+        /current_pose
+        /base_waypoints
+    outputs:
+        /final_waypoints
+    '''
     def __init__(self):
         rospy.init_node('waypoint_updater')
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+
+        self.lane = None
+        self.closest_waypoint_index = None
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -40,14 +72,22 @@ class WaypointUpdater(object):
 
         rospy.spin()
 
-    def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+    def pose_cb(self, pose):
+        '''
+        pose: geometry_msgs/PoseStamped
 
-    def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        self.waypoints = waypoints
-        self.final_waypoints_pub.publish(self.waypoints)
+        '''
+        if self.lane:
+            self.closest_waypoint_index = closest_waypoint_index(pose.pose, self.lane.waypoints)
+            lane = Lane()
+            lane.waypoints = self.lane.waypoints[self.closest_waypoint_index : self.closest_waypoint_index + LOOKAHEAD_WPS]
+            self.final_waypoints_pub.publish(lane)
+
+    def waypoints_cb(self, lane):
+        '''
+        receives a single message from /base_waypoints with all of the waypoints for the map
+        '''
+        self.lane = lane
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
