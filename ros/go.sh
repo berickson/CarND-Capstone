@@ -1,4 +1,4 @@
 # builds and runs styx environment
-source devel/setup.sh
 catkin_make
+source devel/setup.sh
 roslaunch launch/styx.launch
