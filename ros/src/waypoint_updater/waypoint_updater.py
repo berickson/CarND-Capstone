@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 import sys
 import math
+import numpy as np
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -33,7 +34,7 @@ def closest_waypoint_index(pose, waypoints):
     min_d2 = sys.float_info.max
     min_index = None
     for index, waypoint in enumerate(waypoints):
-        p = waypoint.pose.pose.position
+	p = waypoint.pose.pose.position
         dx = p.x - x
         dy = p.y - y
         d2 = dx * dx + dy * dy
@@ -84,11 +85,11 @@ class WaypointUpdater(object):
             lane = Lane()
             #lane.waypoints = self.lane.waypoints[self.closest_waypoint_index : self.closest_waypoint_index + LOOKAHEAD_WPS]
             
-            if self.current_waypoint_index + self.lookahead_wps +1 > self.waypoints_number:
-			    last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
-		        self.final_waypoints = self.waypoints[self.closest_waypoint_index:] + self.waypoints.waypoints[:last_index]
-		    else:
-		        self.final_waypoints = self.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1]
+            if self.closest_waypoint_index + self.lookahead_wps +1 > self.waypoints_number:
+		last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
+		self.final_waypoints = self.waypoints[self.closest_waypoint_index:] + self.waypoints.waypoints[:last_index]
+	    else:
+		self.final_waypoints = self.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1]
             
             self.final_waypoints_pub.publish(lane)
 
