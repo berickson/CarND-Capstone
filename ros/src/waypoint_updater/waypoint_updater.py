@@ -28,6 +28,7 @@ def closest_waypoint_index(pose, waypoints):
     returns the index of the waypoint closest to pose
     '''
     x = pose.position.x
+
     y = pose.position.y
     min_d2 = sys.float_info.max
     min_index = None
@@ -62,7 +63,8 @@ class WaypointUpdater(object):
 
         self.lane = None
         self.closest_waypoint_index = None
-
+        self.lookahead_wps = 0
+        self.waypoints_number = 0
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
 
@@ -80,7 +82,14 @@ class WaypointUpdater(object):
         if self.lane:
             self.closest_waypoint_index = closest_waypoint_index(pose.pose, self.lane.waypoints)
             lane = Lane()
-            lane.waypoints = self.lane.waypoints[self.closest_waypoint_index : self.closest_waypoint_index + LOOKAHEAD_WPS]
+            #lane.waypoints = self.lane.waypoints[self.closest_waypoint_index : self.closest_waypoint_index + LOOKAHEAD_WPS]
+            
+            if self.current_waypoint_index + self.lookahead_wps +1 > self.waypoints_number:
+			    last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
+		        self.final_waypoints = self.waypoints[self.closest_waypoint_index:] + self.waypoints.waypoints[:last_index]
+		    else:
+		        self.final_waypoints = self.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1]
+            
             self.final_waypoints_pub.publish(lane)
 
     def waypoints_cb(self, lane):
@@ -88,6 +97,9 @@ class WaypointUpdater(object):
         receives a single message from /base_waypoints with all of the waypoints for the map
         '''
         self.lane = lane
+        
+        self.waypoints_number = np.shape(lane.waypoints)[0]
+        self.lookahead_wps = min(LOOKAHEAD_WPS, self.waypoints_number)
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
