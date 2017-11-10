@@ -78,19 +78,17 @@ class WaypointUpdater(object):
     def pose_cb(self, pose):
         '''
         pose: geometry_msgs/PoseStamped
-
         '''
         if self.lane:
             self.closest_waypoint_index = closest_waypoint_index(pose.pose, self.lane.waypoints)
             lane = Lane()
-            #lane.waypoints = self.lane.waypoints[self.closest_waypoint_index : self.closest_waypoint_index + LOOKAHEAD_WPS]
-            
+
             if self.closest_waypoint_index + self.lookahead_wps +1 > self.waypoints_number:
-		last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
-		self.final_waypoints = self.waypoints[self.closest_waypoint_index:] + self.waypoints.waypoints[:last_index]
-	    else:
-		self.final_waypoints = self.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1]
-            
+                last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
+                lane.waypoints = self.lane.waypoints[self.closest_waypoint_index:] + self.lane.waypoints[:last_index]
+            else:
+                lane.waypoints = self.lane.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1]
+
             self.final_waypoints_pub.publish(lane)
 
     def waypoints_cb(self, lane):
