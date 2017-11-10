@@ -38,15 +38,37 @@ class Controller(object):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
         velocity_cte = twist.twist.linear.x - current_velocity.twist.linear.x
-        throttle = self.velocity_pid.step(velocity_cte, dt)
+        acceleration = self.velocity_pid.step(velocity_cte, dt)
         steer = self.yaw_controller.get_steering(twist.twist.linear.x,
                                                  twist.twist.angular.z,
                                                  current_velocity.twist.linear.x)
-
+        
+        throttle = 0.0
         brake = 0.0
         
+        #Note that throttle values passed to publish should be in the range 0 to 1. 
+        if acceleration < 0.0:
+            deceleration = -acceleration
+            
+            # brake only if deceleration is higher than brake_deadband
+            if deceleration < self.brake_deadband:
+                brake = 0.0
+            else:
+                brake = self.calc_torque(deceleration)
+                
+            rospy.logwarn("twist_conroller brake: %s", brake)
+        else:
+            throttle = acceleration
+            
+        
         #rospy.logwarn("twist_conroller throttle: %s", throttle)
-        #rospy.logwarn("twist_conroller throttle: %s", steer)
         
         return throttle, brake, steer
+    
+    
+    def calc_torque(self, acceleration):
+        '''
+        Brake values passed to publish should be in units of torque (N*m). The correct values for brake can be computed using the desired acceleration, weight of the vehicle, and wheel radius.
+        '''
+        return acceleration * (self.vehicle_mass + self.fuel_capacity * GAS_DENSITY) * self.wheel_radius
         
