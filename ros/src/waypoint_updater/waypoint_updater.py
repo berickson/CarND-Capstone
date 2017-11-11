@@ -86,10 +86,11 @@ class WaypointUpdater(object):
         t = rospy.get_time()
         if t - self.last_update_time < self.update_period : return
         self.last_update_time = t
-        if self.lane:
+        if self.lane and self.kd_tree:
             # find closest waypoint
             all_d,all_i = self.kd_tree.query([(pose.pose.position.x, pose.pose.position.y)])
             self.closest_waypoint_index = all_i[0]
+
             
             lane = Lane()
 
@@ -98,7 +99,12 @@ class WaypointUpdater(object):
                 lane.waypoints =  copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index:] + self.lane.waypoints[:last_index])
             else:
                 lane.waypoints = copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wp_count +1])
-            
+
+            # apply global max velocity
+            global_max_velocity = rospy.get_param('/waypoint_loader/velocity')
+            for wp in lane.waypoints:
+                wp.twist.twist.linear.x = min(wp.twist.twist.linear.x, global_max_velocity)
+
             if self.red_light_waypoint_number:
 
                 wp_red = self.red_light_waypoint_number - self.closest_waypoint_index
