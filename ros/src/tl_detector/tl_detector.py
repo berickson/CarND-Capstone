@@ -182,13 +182,13 @@ class TLDetector(object):
                 if(light_wp == -1 or light_wp > stop_line_wp):
                     light_wp = stop_line_wp
                     light = self.lights[i]
-                    print(light)
+                    #print(light)
 
         # check if variable light is set
         if (light):
             state = light.state # just for testing and verification
 
-            state = self.get_light_state(light) # comment this line to ignore classifier
+            #state = self.get_light_state(light) # comment this line to ignore classifier
 
             rospy.loginfo("Predicted %s, Ground Truth %s", LIGHT_LABELS[state], LIGHT_LABELS[light.state])
 
