@@ -8,6 +8,7 @@ import sys
 import math
 import numpy as np
 import copy
+from scipy import spatial
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -24,7 +25,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 50 #0 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 100 #0 # Number of waypoints we will publish. You can change this number
 
 def closest_waypoint_index(pose, waypoints):
     '''
@@ -69,9 +70,12 @@ class WaypointUpdater(object):
 
         self.lane = None
         self.closest_waypoint_index = None
-        self.lookahead_wps = 0
-        self.waypoints_number = 0
+        self.lookahead_wp_count = 0
+        self.waypoint_count = 0
         self.red_light_waypoint_number = -1
+        self.last_update_time = 0.0
+        self.update_period = 0.2 # seconds
+
 
         rospy.spin()
 
@@ -79,15 +83,21 @@ class WaypointUpdater(object):
         '''
         pose: geometry_msgs/PoseStamped
         '''
+        t = rospy.get_time()
+        if t - self.last_update_time < self.update_period : return
+        self.last_update_time = t
         if self.lane:
-            self.closest_waypoint_index = closest_waypoint_index(pose.pose, self.lane.waypoints)
+            # find closest waypoint
+            all_d,all_i = self.kd_tree.query([(pose.pose.position.x, pose.pose.position.y)])
+            self.closest_waypoint_index = all_i[0]
+            
             lane = Lane()
 
-            if self.closest_waypoint_index + self.lookahead_wps +1 > self.waypoints_number:
-                last_index = self.closest_waypoint_index + self.lookahead_wps + 1 - self.waypoints_number
+            if self.closest_waypoint_index + self.lookahead_wp_count +1 > self.waypoint_count:
+                last_index = self.closest_waypoint_index + self.lookahead_wp_count + 1 - self.waypoint_count
                 lane.waypoints =  copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index:] + self.lane.waypoints[:last_index])
             else:
-                lane.waypoints = copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wps +1])
+                lane.waypoints = copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index: self.closest_waypoint_index + self.lookahead_wp_count +1])
             
             if self.red_light_waypoint_number:
 
@@ -102,8 +112,8 @@ class WaypointUpdater(object):
                             lane.waypoints[i].twist.twist.linear.y = 0.0
                             lane.waypoints[i].twist.twist.linear.z = 0.0
                         else:
-                            stop_ahead = 5
-                            a = 0.2
+                            stop_ahead = 8
+                            a = 2
                             s = self.distance(lane.waypoints, i, wp_red)
                             s = max(s-stop_ahead,0)
                             max_v = max(math.sqrt(2*a*s),0)
@@ -117,12 +127,14 @@ class WaypointUpdater(object):
         receives a single message from /base_waypoints with all of the waypoints for the map
         '''
         self.lane = lane
+
+        self.kd_tree = spatial.KDTree([[wp.pose.pose.position.x,wp.pose.pose.position.y] for wp in lane.waypoints ])
         
-        self.waypoints_number = np.shape(lane.waypoints)[0]
-        self.lookahead_wps = min(LOOKAHEAD_WPS, self.waypoints_number)
+        self.waypoint_count = np.shape(lane.waypoints)[0]
+        self.lookahead_wp_count = min(LOOKAHEAD_WPS, self.waypoint_count)
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
+        # Callback for /traffic_waypoint message.
         self.red_light_waypoint_number = msg.data
 
     def obstacle_cb(self, msg):
