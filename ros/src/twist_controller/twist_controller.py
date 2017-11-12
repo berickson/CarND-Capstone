@@ -27,7 +27,7 @@ class Controller(object):
         self.max_steer_angle = max_steer_angle
         
         # init controllers
-        self.velocity_pid = PID(1.5, 0.001, 0.,
+        self.velocity_pid = PID(1.5, 0.00, 0.,
                                 mn=decel_limit, mx=accel_limit)
         self.yaw_controller = YawController(wheel_base, steer_ratio, 1, 
                                             max_lat_accel, max_steer_angle)
