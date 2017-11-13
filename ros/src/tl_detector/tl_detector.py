@@ -58,6 +58,8 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        
+        self.has_image = False
 
         rospy.spin()
 
@@ -186,9 +188,9 @@ class TLDetector(object):
 
         # check if variable light is set
         if (light):
-            state = light.state # just for testing and verification
+            #state = light.state # uncomment if need ground truth
 
-            #state = self.get_light_state(light) # comment this line to ignore classifier
+            state = self.get_light_state(light) # uncomment for classifier
 
             rospy.loginfo("Predicted %s, Ground Truth %s", LIGHT_LABELS[state], LIGHT_LABELS[light.state])
 
