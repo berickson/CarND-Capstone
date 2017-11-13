@@ -35,13 +35,10 @@ class TLClassifier(object):
             predicted_class_id = self.model.predict_classes(image, batch_size=1, verbose=0)
             
         if predicted_class_id[0] == 0:
-            rospy.loginfo("Pred :  RED")
             state = TrafficLight.RED
         elif predicted_class_id[0] == 1:
-            rospy.loginfo("Pred :  YELLOW")
             state = TrafficLight.YELLOW
         elif predicted_class_id[0] == 2:
-            rospy.loginfo("Pred :  GREEN")
             state = TrafficLight.GREEN
         else:
             state = TrafficLight.UNKNOWN
