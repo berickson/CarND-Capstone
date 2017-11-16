@@ -1,6 +1,7 @@
 import tensorflow as tf
 import cv2
 import numpy as np
+import rospy
 
 from styx_msgs.msg import TrafficLight
 
@@ -26,7 +27,7 @@ class TLClassifier(object):
             self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
             self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
             self.num_detection = self.detection_graph.get_tensor_by_name('num_detections:0')
-						self.sess = tf.Session(graph=self.detection_graph)
+	    self.sess = tf.Session(graph=self.detection_graph)
 
         pass
 
@@ -42,23 +43,25 @@ class TLClassifier(object):
         """
         #TODO implement light color prediction
 
-				# Bounding Box Detection.
-				with self.detection_graph.as_default():
-						# Expand dimension since the model expects image to have shape [1, None, None, 3].
-						img_expanded = np.expand_dims(img, axis=0)  
-						(boxes, scores, classes, num) = self.sess.run(
-								[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
-								feed_dict={self.image_tensor: img_expanded})
-					
-				return self.get_most_probable_state(scores, classes)
+	# Bounding Box Detection.
+	with self.detection_graph.as_default():
+	# Expand dimension since the model expects image to have shape [1, None, None, 3].
+		img_expanded = np.expand_dims(image, axis=0)  
+		(boxes, scores, classes, num) = self.sess.run(
+						[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
+						feed_dict={self.image_tensor: img_expanded})
+	#rospy.logwarn("scores:\n%s", scores)		
+	return self.get_most_probable_state(scores[0], classes[0])
 
+    def get_most_probable_state(self, scores, classes):
+	state_num = 4
+	detection_thresold = 0.5
+	most_probable_state = 4
+	highest_score = 0
+	for i in range(state_num):
+		if scores[i] > detection_thresold and scores[i] > highest_score:
+			rospy.logwarn("scores:\n%s", scores[i])
+			highest_score = scores[i]
+			most_probable_state = classes[i]-1
 
-		def get_most_probable_state(self, scores, classes, num):
-			highest_score = 0
-			most_probable_state = 5
-			for i in range(int(num)):
-				if scores[i] > highest_score:
-					highest_score = scores[i]
-					most_probable_state = int(classes[i])
-
-			return most_probable_state
+	return int(most_probable_state)
