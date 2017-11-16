@@ -50,7 +50,7 @@ class TLClassifier(object):
 		(boxes, scores, classes, num) = self.sess.run(
 						[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
 						feed_dict={self.image_tensor: img_expanded})
-	#rospy.logwarn("scores:\n%s", scores)		
+	
 	return self.get_most_probable_state(scores[0], classes[0])
 
     def get_most_probable_state(self, scores, classes):
@@ -60,7 +60,7 @@ class TLClassifier(object):
 	highest_score = 0
 	for i in range(state_num):
 		if scores[i] > detection_thresold and scores[i] > highest_score:
-			rospy.logwarn("scores:\n%s", scores[i])
+			#rospy.logwarn("scores:\n%s", scores[i])
 			highest_score = scores[i]
 			most_probable_state = classes[i]-1
 
