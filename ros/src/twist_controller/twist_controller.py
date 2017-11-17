@@ -56,7 +56,7 @@ class Controller(object):
             else:
                 brake = self.calc_torque(deceleration)
                 
-            rospy.logwarn("twist_conroller brake: %s", brake)
+            #rospy.logwarn("twist_conroller brake: %s", brake)
         else:
             throttle = acceleration
             
