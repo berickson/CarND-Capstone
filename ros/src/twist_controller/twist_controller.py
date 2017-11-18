@@ -5,7 +5,7 @@ from lowpass import LowPassFilter
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
-
+STOP_VELOCITY = 0.277778 # = 1 km/h or 0.621371 mph
 
 class Controller(object):
     def __init__(self, vehicle_mass, fuel_capacity, 
@@ -27,11 +27,11 @@ class Controller(object):
         self.max_steer_angle = max_steer_angle
         
         # init controllers
-        self.velocity_pid = PID(1.5, 0.00, 0.,
+        self.velocity_pid = PID(0.65, 0.0, 0.0,
                                 mn=decel_limit, mx=accel_limit)
         self.yaw_controller = YawController(wheel_base, steer_ratio, 1, 
                                             max_lat_accel, max_steer_angle)
-        
+            
         pass
 
     def control(self, twist, current_velocity, dt):
@@ -47,22 +47,22 @@ class Controller(object):
         brake = 0.0
         
         #Note that throttle values passed to publish should be in the range 0 to 1. 
-        if acceleration < 0.0:
-            deceleration = -acceleration
-            
-            # brake only if deceleration is higher than brake_deadband
-            if deceleration < self.brake_deadband:
-                brake = 0.0
-            else:
-                brake = self.calc_torque(deceleration)
-                
-            #rospy.logwarn("twist_conroller brake: %s", brake)
+        if twist.twist.linear.x < STOP_VELOCITY:
+            brake = self.calc_torque(abs(self.decel_limit))
         else:
-            throttle = acceleration
-            
-        
-        #rospy.logwarn("twist_conroller throttle: %s", throttle)
-        
+            if acceleration < 0.0:
+                deceleration = -acceleration
+                
+                # brake only if deceleration is higher than brake_deadband
+                if deceleration < self.brake_deadband:
+                    brake = 0.0
+                else:
+                    brake = self.calc_torque(deceleration)
+                    
+                #rospy.logwarn("twist_conroller brake: %s", brake)
+            else:
+                throttle = acceleration
+               
         return throttle, brake, steer
     
     
