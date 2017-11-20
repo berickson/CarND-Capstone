@@ -30,8 +30,7 @@ class TLClassifier(object):
     def get_classification(self, image):
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image, axis=0)
-
-        # Actual detection.
+	
         (boxes, scores, classes, num) = self.sess.run(
             [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
             feed_dict={self.image_tensor: image_np_expanded})
@@ -49,7 +48,6 @@ class TLClassifier(object):
     @staticmethod
     def get_most_probable_state(scores, classes):
 	detection_threshold = 0.5
-
 	if scores > detection_threshold:
 		if classes == 1:
 		    return TrafficLight.RED
