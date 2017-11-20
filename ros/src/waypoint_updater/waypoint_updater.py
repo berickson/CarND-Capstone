@@ -47,7 +47,6 @@ def closest_waypoint_index(pose, waypoints):
     return min_index
 
 
-
 class WaypointUpdater(object):
     '''
     Planning module that listens to pose and publishes
@@ -75,7 +74,7 @@ class WaypointUpdater(object):
         self.red_light_waypoint_number = -1
         self.last_update_time = 0.0
         self.update_period = 0.2 # seconds
-
+        self.kd_tree = None
 
         rospy.spin()
 
@@ -83,18 +82,17 @@ class WaypointUpdater(object):
         '''
         pose: geometry_msgs/PoseStamped
         '''
-        t = rospy.get_time()
-        if t - self.last_update_time < self.update_period : return
-        self.last_update_time = t
+        current_time = rospy.get_time()
+        if current_time - self.last_update_time < self.update_period : return
+        self.last_update_time = current_time
         if self.lane and self.kd_tree:
             # find closest waypoint
-            all_d,all_i = self.kd_tree.query([(pose.pose.position.x, pose.pose.position.y)])
+            _, all_i = self.kd_tree.query([(pose.pose.position.x, pose.pose.position.y)])
             self.closest_waypoint_index = all_i[0]
 
-            
             lane = Lane()
 
-            if self.closest_waypoint_index + self.lookahead_wp_count +1 > self.waypoint_count:
+            if self.closest_waypoint_index + self.lookahead_wp_count + 1 > self.waypoint_count:
                 last_index = self.closest_waypoint_index + self.lookahead_wp_count + 1 - self.waypoint_count
                 lane.waypoints =  copy.deepcopy(self.lane.waypoints[self.closest_waypoint_index:] + self.lane.waypoints[:last_index])
             else:
@@ -106,23 +104,18 @@ class WaypointUpdater(object):
                 wp.twist.twist.linear.x = min(wp.twist.twist.linear.x, global_max_velocity)
 
             if self.red_light_waypoint_number:
-
                 wp_red = self.red_light_waypoint_number - self.closest_waypoint_index
                 if wp_red >= 0 and wp_red < len(lane.waypoints):
                     rospy.loginfo("stopping for red light")
                     for i in range(len(lane.waypoints)):
-                        # set maximum speed at each point to ensure we stop at end
-                        # todo: what about wrap around?
-                        if i >= wp_red:
-                            lane.waypoints[i].twist.twist.linear.x = 0.0
-                            lane.waypoints[i].twist.twist.linear.y = 0.0
-                            lane.waypoints[i].twist.twist.linear.z = 0.0
-                        else:
-                            stop_ahead = 8
-                            a = 2
-                            s = self.distance(lane.waypoints, i, wp_red)
-                            s = max(s-stop_ahead,0)
-                            max_v = max(math.sqrt(2*a*s),0)
+                        # set maximum speed at each point to ensure we stop at light
+                        stop_s = 8.0 # desired location to stop (includes car length?)
+                        go_s = 4.0 # if we don't stop before this point, in intersection, go
+                        desired_a = 1.0      # desired acceleration
+                        to_light_s = self.distance(lane.waypoints, i, wp_red)
+                        if to_light_s > go_s:
+                            s_remaining = max(to_light_s - stop_s, 0)
+                            max_v = max(math.sqrt(2 * desired_a * s_remaining), 0)
                             if lane.waypoints[i].twist.twist.linear.x > max_v:
                                 lane.waypoints[i].twist.twist.linear.x = max_v
 
@@ -134,8 +127,8 @@ class WaypointUpdater(object):
         '''
         self.lane = lane
 
-        self.kd_tree = spatial.KDTree([[wp.pose.pose.position.x,wp.pose.pose.position.y] for wp in lane.waypoints ])
-        
+        self.kd_tree = spatial.KDTree([[wp.pose.pose.position.x, wp.pose.pose.position.y] for wp in lane.waypoints ])
+
         self.waypoint_count = np.shape(lane.waypoints)[0]
         self.lookahead_wp_count = min(LOOKAHEAD_WPS, self.waypoint_count)
 
