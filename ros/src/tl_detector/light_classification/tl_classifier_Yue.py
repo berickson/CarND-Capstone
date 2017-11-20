@@ -1,67 +1,62 @@
+from styx_msgs.msg import TrafficLight
 import tensorflow as tf
 import cv2
 import numpy as np
 import rospy
 
-from styx_msgs.msg import TrafficLight
-
-
 class TLClassifier(object):
     def __init__(self):
-        #TODO load classifier
+        self.model = TLClassifier.load_graph()
+        self.model.as_default()
+        self.sess = tf.Session(graph=self.model)
+        self.image_tensor = self.model.get_tensor_by_name('image_tensor:0')
+        self.detection_boxes = self.model.get_tensor_by_name('detection_boxes:0')
+        self.detection_scores = self.model.get_tensor_by_name('detection_scores:0')
+        self.detection_classes = self.model.get_tensor_by_name('detection_classes:0')
+        self.num_detection = self.model.get_tensor_by_name('num_detections:0')
 
-        PATH_TO_MODEL = '../../../models/frozen_inference_graph_site.pb'
-        self.detection_graph = tf.Graph()
 
-        with self.detection_graph.as_default():
+    @staticmethod
+    def load_graph():
+        detection_graph = tf.Graph()
+        with detection_graph.as_default():
             od_graph_def = tf.GraphDef()
-
-            # Works up to here.
-            with tf.gfile.GFile(PATH_TO_MODEL, 'rb') as fid:
+            with tf.gfile.GFile('../../../models/frozen_inference_graph_real.pb', 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
-
-            self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-            self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-            self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
-            self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
-            self.num_detection = self.detection_graph.get_tensor_by_name('num_detections:0')
-	    self.sess = tf.Session(graph=self.detection_graph)
-
-        pass
+        return detection_graph
 
     def get_classification(self, image):
-        """Determines the color of the traffic light in the image
+        # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+        image_np_expanded = np.expand_dims(image, axis=0)
 
-        Args:
-            image (cv::Mat): image containing the traffic light
+        # Actual detection.
+        (boxes, scores, classes, num) = self.sess.run(
+            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
+            feed_dict={self.image_tensor: image_np_expanded})
 
-        Returns:
-            int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+        boxes = np.squeeze(boxes)
+        scores = np.squeeze(scores)
+        classes = np.squeeze(classes).astype(np.int32)
 
-        """
-        #TODO implement light color prediction
+        if len(scores) < 1:
+            return TrafficLight.UNKNOWN;
 
-	# Bounding Box Detection.
-	with self.detection_graph.as_default():
-	# Expand dimension since the model expects image to have shape [1, None, None, 3].
-		img_expanded = np.expand_dims(image, axis=0)  
-		(boxes, scores, classes, num) = self.sess.run(
-						[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
-						feed_dict={self.image_tensor: img_expanded})
-	
-	return self.get_most_probable_state(scores[0], classes[0])
+        return TLClassifier.get_most_probable_state(scores[0], classes[0])
 
-    def get_most_probable_state(self, scores, classes):
-	state_num = 4
-	detection_thresold = 0.5
-	most_probable_state = 4
-	highest_score = 0
-	for i in range(state_num):
-		if scores[i] > detection_thresold and scores[i] > highest_score:
-			#rospy.logwarn("scores:\n%s", scores[i])
-			highest_score = scores[i]
-			most_probable_state = classes[i]-1
 
-	return int(most_probable_state)
+    @staticmethod
+    def get_most_probable_state(scores, classes):
+	detection_threshold = 0.5
+
+	if scores > detection_threshold:
+		if classes == 1:
+		    return TrafficLight.RED
+		elif classes == 2:
+		    return TrafficLight.YELLOW
+		elif classes == 3:
+		    return TrafficLight.GREEN
+		return TrafficLight.UNKNOWN
+        else:
+            return TrafficLight.UNKNOWN
