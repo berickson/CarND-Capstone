@@ -6,33 +6,48 @@ import rospy
 
 class TLClassifier(object):
     def __init__(self):
-        self.model = TLClassifier.load_graph()
-        self.model.as_default()
-        self.sess = tf.Session(graph=self.model)
-        self.image_tensor = self.model.get_tensor_by_name('image_tensor:0')
-        self.detection_boxes = self.model.get_tensor_by_name('detection_boxes:0')
-        self.detection_scores = self.model.get_tensor_by_name('detection_scores:0')
-        self.detection_classes = self.model.get_tensor_by_name('detection_classes:0')
-        self.num_detection = self.model.get_tensor_by_name('num_detections:0')
+	self.sim_enabled = True
+        if self.sim_enabled:
+            model_name = '../../../models/frozen_inference_graph_sim.pb'
+        else:
+            model_name = '../../../models/frozen_inference_graph_real.pb'
 
+        self.image_np_deep = None
+        self.detection_graph = tf.Graph()
 
-    @staticmethod
-    def load_graph():
-        detection_graph = tf.Graph()
-        with detection_graph.as_default():
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+        with self.detection_graph.as_default():
             od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile('../../../models/frozen_inference_graph_real.pb', 'rb') as fid:
+
+            with tf.gfile.GFile(model_name, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
-        return detection_graph
+
+            self.sess = tf.Session(graph=self.detection_graph, config=config)
+
+        # Definite input and output Tensors for detection_graph
+        self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+
+        # Each box represents a part of the image where a particular object was detected.
+        self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+
+        # Each score represent how level of confidence for each of the objects.
+        # Score is shown on the result image, together with the class label.
+        self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+        self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+
 
     def get_classification(self, image):
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image, axis=0)
-	
+
+        # Actual detection.
         (boxes, scores, classes, num) = self.sess.run(
-            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detection],
+            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
             feed_dict={self.image_tensor: image_np_expanded})
 
         boxes = np.squeeze(boxes)
@@ -48,13 +63,14 @@ class TLClassifier(object):
     @staticmethod
     def get_most_probable_state(scores, classes):
 	detection_threshold = 0.5
+
 	if scores > detection_threshold:
 		if classes == 1:
-		    return TrafficLight.RED
-		elif classes == 2:
-		    return TrafficLight.YELLOW
-		elif classes == 3:
 		    return TrafficLight.GREEN
+		elif classes == 2:
+		    return TrafficLight.RED
+		elif classes == 3:
+		    return TrafficLight.YELLOW
 		return TrafficLight.UNKNOWN
         else:
             return TrafficLight.UNKNOWN
