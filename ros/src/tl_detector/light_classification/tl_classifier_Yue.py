@@ -66,11 +66,11 @@ class TLClassifier(object):
 
 	if scores > detection_threshold:
 		if classes == 1:
-		    return TrafficLight.GREEN
-		elif classes == 2:
 		    return TrafficLight.RED
-		elif classes == 3:
+		elif classes == 2:
 		    return TrafficLight.YELLOW
+		elif classes == 3:
+		    return TrafficLight.GREEN
 		return TrafficLight.UNKNOWN
         else:
             return TrafficLight.UNKNOWN
