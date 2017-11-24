@@ -6,8 +6,7 @@ import rospy
 
 class TLClassifier_yue(object):
     def __init__(self, model):
-
-	MDOEL_PATH = model
+        MODEL_PATH = model
 
         self.image_np_deep = None
         self.detection_graph = tf.Graph()
@@ -18,7 +17,7 @@ class TLClassifier_yue(object):
         with self.detection_graph.as_default():
             od_graph_def = tf.GraphDef()
 
-            with tf.gfile.GFile(MDOEL_PATH, 'rb') as fid:
+            with tf.gfile.GFile(MODEL_PATH, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
@@ -59,13 +58,13 @@ class TLClassifier_yue(object):
 
     @staticmethod
     def get_most_probable_state(scores, classes):
-	detection_threshold = 0.5
+        detection_threshold = 0.5
 
-	if scores > detection_threshold:
-		if classes == 1 or classes == 2:
-		    return TrafficLight.RED
-		elif classes == 3:
-		    return TrafficLight.GREEN
-		return TrafficLight.UNKNOWN
+        if scores > detection_threshold:
+            if classes == 3 or classes == 2:
+                return TrafficLight.RED
+            elif classes == 1:
+                return TrafficLight.GREEN
+            return TrafficLight.UNKNOWN
         else:
             return TrafficLight.UNKNOWN
