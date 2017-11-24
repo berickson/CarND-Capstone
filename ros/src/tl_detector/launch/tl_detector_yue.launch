@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="tl_detector" type="tl_detector.py" name="tl_detector" output="screen" cwd="node">
+	<param name="model_path" value="../../../models/frozen_inference_graph_sim.pb" />
+	<param name="editor" value="yue" />
+    </node>
+</launch>
