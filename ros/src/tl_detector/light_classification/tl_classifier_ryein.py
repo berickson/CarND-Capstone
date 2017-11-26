@@ -12,9 +12,9 @@ import rospy
 
 from keras.utils.generic_utils import CustomObjectScope
 
-class TLClassifier(object):
+class TLClassifier_ryein(object):
 
-    def __init__(self):
+    def __init__(self, model):
         self.SIM = True
         
         # real
