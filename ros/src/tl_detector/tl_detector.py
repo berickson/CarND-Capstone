@@ -15,11 +15,11 @@ import yaml
 import math
 
 class Point:
-   def __init__( self, x=0, y=0):
-      self.x = x
-      self.y = y
-   def __del__(self):
-      class_name = self.__class__.__name__
+    def __init__( self, x=0, y=0):
+        self.x = x
+        self.y = y
+    def __del__(self):
+        class_name = self.__class__.__name__
       
 LIGHT_LABELS = ['RED', 'YELLOW', 'GREEN', 'NONE', 'UNKNOWN']
 
@@ -42,6 +42,29 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        config_string = rospy.get_param("/traffic_light_config")
+        self.config = yaml.load(config_string)
+
+        self.model = rospy.get_param('~model_path')
+
+        editor = rospy.get_param('~editor')
+
+    	rospy.loginfo("model %s, editor %s", self.model, editor)
+
+        if self.model == "None":
+            self.light_classifier = None
+        else:
+            if editor == "yue":
+                self.light_classifier = TLClassifier_yue(self.model)
+            else:
+                self.light_classifier = TLClassifier_ryein(self.model)
+
+        self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
+
+
+        
+        self.has_image = False
+        
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb, queue_size=1)
 
@@ -55,28 +78,6 @@ class TLDetector(object):
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1, buff_size=2*52428800)
 
-        config_string = rospy.get_param("/traffic_light_config")
-        self.config = yaml.load(config_string)
-
-        self.model = rospy.get_param('~model_path')
-
-        editor = rospy.get_param('~editor')
-
-	rospy.loginfo("model %s, editor %s", self.model, editor)
-
-        if self.model == "None":
-            self.light_classifier = None
-        else:
-	    if editor == "yue":
-                self.light_classifier = TLClassifier_yue(self.model)
-            else:
-                self.light_classifier = TLClassifier_ryein(self.model)
-
-        self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
-
-
-        
-        self.has_image = False
 
         rospy.spin()
 
