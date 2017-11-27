@@ -45,9 +45,9 @@ class TLDetector(object):
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
-        self.model = rospy.get_param('~model_path')
+        self.model = rospy.get_param('~model_path',"")
 
-        editor = rospy.get_param('~editor')
+        editor = rospy.get_param('~editor',"")
 
     	rospy.loginfo("model %s, editor %s", self.model, editor)
 
@@ -115,9 +115,9 @@ class TLDetector(object):
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
+            rospy.logwarn(self.last_wp)
             self.upcoming_red_light_pub.publish(Int32(light_wp))
-        else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+        self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
     def distance(self, p1, p2):
@@ -210,7 +210,7 @@ class TLDetector(object):
 
             state = self.get_light_state(light) # uncomment for classifier
 
-            rospy.loginfo("Predicted %s, Ground Truth %s", LIGHT_LABELS[state], LIGHT_LABELS[light.state])
+            rospy.loginfo("Predicted %s, Ground Truth %s, WP %s", LIGHT_LABELS[state], LIGHT_LABELS[light.state], light_wp)
 
             return light_wp, state
         

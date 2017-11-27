@@ -15,7 +15,7 @@ from keras.utils.generic_utils import CustomObjectScope
 class TLClassifier_ryein(object):
 
     def __init__(self, model):
-        self.SIM = True
+        self.SIM = (rospy.get_param('~sim') == 1)
         
         # real
         if(not self.SIM):
