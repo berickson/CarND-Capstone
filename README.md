@@ -103,10 +103,12 @@ We implemented a guard to stop the car if the proposed velocity is less than 1 k
 
 ### Testing
 Initial of the testing was done within the Udacity supplied simulator.
+[![Testing in Simulator](http://img.youtube.com/vi/u7vAf-IESVs/0.jpg)](http://www.youtube.com/watch?v=u7vAf-IESVs "Testing in Simulator")
 
 Traffic light classification was done using image collections 
 
 Testing was done on Udacity site collected data using rosbags. For example:
+[![Testing with rosbag](http://img.youtube.com/vi/FeWx2SVEuu0/0.jpg)](http://www.youtube.com/watch?v=FeWx2SVEuu0 "Testing with rosbag")
 
 Run our software:
 ```
