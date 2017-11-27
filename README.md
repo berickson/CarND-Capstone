@@ -24,7 +24,7 @@ Project Contributions: Classification & Traffic light detection
 
 <pre>
 Thomas Bindl (UTC+1 Central Europe)
-t.bindl@gmx.de  ( https://github.com/DTowni )
+thomas.bindl@gmx.de  ( https://github.com/DTowni )
 Software Engineer
 Project Contributions: Control Subsystem
 </pre>
