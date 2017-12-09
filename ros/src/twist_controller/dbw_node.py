@@ -110,6 +110,8 @@ class DBWNode(object):
                                                                     dt)
                 
                 self.publish(throttle, brake, steering)
+            else:
+                self.controller.reset()
                 
                 
             rospy_rate.sleep()
