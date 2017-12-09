@@ -71,4 +71,7 @@ class Controller(object):
         Brake values passed to publish should be in units of torque (N*m). The correct values for brake can be computed using the desired acceleration, weight of the vehicle, and wheel radius.
         '''
         return acceleration * (self.vehicle_mass + self.fuel_capacity * GAS_DENSITY) * self.wheel_radius
+    
+    def reset(self):
+        self.velocity_pid.reset()
         
